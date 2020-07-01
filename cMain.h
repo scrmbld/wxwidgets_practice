@@ -6,9 +6,9 @@ class cMain : public wxFrame {
 			cMain(const wxString& title);
 
 	public:
-		wxButton *m_btn1 = nullptr;
-		wxTextCtrl *m_text1 = nullptr;
 		wxListBox *m_list1 = nullptr;
+		wxTextCtrl *m_text1 = nullptr;
+		wxButton *m_btn1 = nullptr;
 	
 		void OnButtonClicked(wxCommandEvent &evt);
 
