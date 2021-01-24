@@ -3,8 +3,9 @@
 #include "cMain.h"
 
 bool cApp::OnInit() {
-	cMain *simple = new cMain(wxT("test"));
-	simple->Show(true);
+	//create the window
+	cMain *minesweeper = new cMain(wxT("Minesweeper"));
+	minesweeper->Show(true);
 	return true;
 }
 

@@ -4,5 +4,4 @@
 class cApp : public wxApp {
 	public:
 		 bool OnInit();
-
 };

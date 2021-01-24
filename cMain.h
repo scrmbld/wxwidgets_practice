@@ -4,12 +4,15 @@
 class cMain : public wxFrame {
 	public:
 			cMain(const wxString& title);
-
+			~cMain();
 	public:
-		wxListBox *m_list1 = nullptr;
-		wxTextCtrl *m_text1 = nullptr;
-		wxButton *m_btn1 = nullptr;
-	
+		int fieldWidth = 10;
+		int fieldHeight = 10;
+		
+		wxButton **btn;
+		int *nField = nullptr;
+		bool bFirstClick = true;
+
 		void OnButtonClicked(wxCommandEvent &evt);
 
 

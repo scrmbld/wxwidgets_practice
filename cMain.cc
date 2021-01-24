@@ -5,67 +5,108 @@
 #include "cApp.h"
 #include "cMain.h"
 
+//event table - currently unused, button events are using button.Bind()
 wxBEGIN_EVENT_TABLE(cMain, wxFrame)
-	EVT_BUTTON(10001, cMain::OnButtonClicked)
 wxEND_EVENT_TABLE()
 
-bool all_digits(std::string s) {
-	for (char c : s) {
-		if (!isdigit(c)) return false;
-	}
-	return true;
-}
-
-cMain::cMain(const wxString &title) : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(800, 800)) {
+cMain::cMain(const wxString &title) : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(800, 800)) {
 	Centre();
 
-	m_list1 = new wxListBox(this, wxID_ANY, wxPoint(10, 10), wxSize(300, 100));
-	
-	m_text1 = new wxTextCtrl(this, wxID_ANY, "", wxPoint(10, 110), wxSize(200, 50));
+	//create the field
+	//create array for buttons
+	btn = new wxButton*[fieldWidth * fieldHeight];
+	//button placement & size managed by wxwidgets grid
+	wxGridSizer *grid = new wxGridSizer(fieldWidth, fieldHeight, 0, 0);
 
-	m_btn1 = new wxButton(this, 10001, "click me", wxPoint(220, 110), wxSize(100, 50));
+	//create array for mine data
+	nField = new int [fieldWidth * fieldHeight];
+
+	//initialize buttons and nField
+	for (int i = 0; i < fieldWidth; i++) {
+		for (int j = 0; j < fieldHeight; j++) {
+			//construct button
+			btn[i*fieldWidth + j] = new wxButton(this, 10'000 + (i*fieldWidth + j));
+			//add to grid
+			grid->Add(btn[i*fieldWidth + j], 1, wxEXPAND | wxALL);
+			//bind event for button press
+			btn[i*fieldWidth + j]->Bind(wxEVT_COMMAND_BUTTON_CLICKED, &cMain::OnButtonClicked, this);
+			
+			//set every spot in the mine array to 0
+			nField[i*fieldWidth + j] = 0;
+		}
+	}
+
+	//run the grid
+	this->SetSizer(grid);
+	grid->Layout();
+}
+
+cMain::~cMain() {
+	//vectors are better
+	delete[] btn;
+	delete[] nField;
 }
 
 void cMain::OnButtonClicked(wxCommandEvent &evt) {
-	std::cout << "button clicked" << std::endl;
-	std::stringstream input;
-	input << m_text1->GetValue();
-	int lhs = 0;
-	int rhs = 0;
-	input >> lhs;
-	std::cout << lhs << std::endl;
-	while (input) {
-		std::string s;
-		input >> s;
-		if (!input) break;
-		if (!all_digits(s)) {
-			std::cout << "performing an operation (" << s << ")" << std::endl;
-			if (s == "+") {
-				lhs += rhs;
-			} else if (s == "-") {
-				lhs -= rhs;
-			} else if (s == "*") {
-				lhs *= rhs;
-			} else if (s == "/") {
-				lhs /= rhs;
-			} else if (s == "^") {
-				lhs = std::pow(lhs, rhs);
-			} else {
-				std::cout << "syntax error" << std::endl;
-				break;
-			}
-			
-			rhs = 0;
-		} else {
-			std::cout << "getting a number" << std::endl;
-			rhs = stoi(s);
-		}
+	//get location of the button that's been pressed
+	int x = (evt.GetId() - 10'000) % fieldWidth;
+	int y = (evt.GetId() - 10'000) / fieldWidth;
 
+	//if it's the first one to be clicked
+	if (bFirstClick) {
+		//generate the mines
+		int mines = 30;
+		while (mines) {
+			int rx = rand() % fieldWidth;
+			int ry = rand() % fieldHeight;
+
+			//make sure that the initial spot doesn't have one
+			//that way the player can't die instantly
+			if (nField[ry*fieldWidth + rx] == 0 && rx != x && ry != y) {
+				nField[ry* fieldWidth + rx] = -1; // -1 == mine
+				--mines;
+			}
+		}
+		
+		bFirstClick = false;
 	}
 
-	std::cout << "outputting result (" << lhs << ")" << std::endl;
-	std::cout << std::to_string(lhs) << std::endl;
-	m_list1->AppendString(std::to_string(lhs));
-	m_text1->SetValue("");
+	//disable the pressed button
+	btn[y*fieldWidth + x]->Enable(false);
+
+	//check if player hit mine
+	if (nField[y*fieldWidth + x] == -1) {
+		//inform the player that they're bad
+		wxMessageBox("BOOOOM!! - Game Over :(");
+
+		//reset game
+		bFirstClick = true;
+
+		//set every spot in mine array to 0, blank out the buttons, and enable them
+		for (int i = 0; i < fieldWidth; i++) {
+			for (int j = 0; j < fieldHeight; j++) {
+				nField[i*fieldWidth + j] = 0;
+				btn[i*fieldWidth + j]->SetLabel("");
+				btn[i*fieldWidth + j]->Enable(true);
+			}
+		}
+	
+	} else {
+		//count neighboring mines
+		int mine_count = 0;
+		for (int i = -1; i < 2; i++) {
+			for (int j = -1; j < 2; j++) {
+				if (x + i >= 0 && x + i < fieldWidth && y + j >= 0 && y + j < fieldHeight) {
+					if (nField[(y + j)*fieldWidth + (x + i)] == -1) 
+						mine_count++;
+				}
+			}
+		}
+
+		//dislay the number of neighboring mines on the button
+		if (mine_count > 0)
+			btn[y*fieldWidth + x]->SetLabel(std::to_string(mine_count));
+	}
+
 	evt.Skip();
 }
